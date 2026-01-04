@@ -14,7 +14,7 @@ builder.Services.AddOpenApi();
 var emailSettings = builder.Configuration.GetSection("Brevo");
 var smtpClient = new SmtpClient(emailSettings["SmtpServer"])
 {
-    Port = int.Parse(emailSettings["SmtpPort"]),
+    Port = int.Parse(emailSettings["Port"]!),
     Credentials = new NetworkCredential(
         emailSettings["Login"],
         emailSettings["BrevoPassword"]),
@@ -23,6 +23,7 @@ var smtpClient = new SmtpClient(emailSettings["SmtpServer"])
 
 builder.Services
     .AddFluentEmail(emailSettings["BrevoSender"], emailSettings["BrevoSender"])
+    .AddRazorRenderer()
     .AddSmtpSender(smtpClient);
 
 
