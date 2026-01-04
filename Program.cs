@@ -11,18 +11,18 @@ builder.Services.AddOpenApi();
 
 
 //Configure fluentemail
-var emailSettings = builder.Configuration.GetSection("Brevo");
-var smtpClient = new SmtpClient(emailSettings["SmtpServer"])
+//var emailSettings = builder.Configuration.GetSection("Brevo");
+var smtpClient = new SmtpClient(builder.Configuration["EmailSettings:SmtpServer"])
 {
-    Port = int.Parse(emailSettings["Port"]!),
+    Port = int.Parse(builder.Configuration["EmailSettings:SmtpPort"]!),
     Credentials = new NetworkCredential(
-        emailSettings["Login"],
-        emailSettings["BrevoPassword"]),
+        builder.Configuration["EmailSettings:SmtpLogin"],
+        builder.Configuration["EmailSettings:SmtpPassword"]),
     EnableSsl = true
 };
 
 builder.Services
-    .AddFluentEmail(emailSettings["BrevoSender"], emailSettings["BrevoSender"])
+    .AddFluentEmail(builder.Configuration["EmailSettings:SmtpSender"], builder.Configuration["EmailSettings:SmtpSender"])
     .AddRazorRenderer()
     .AddSmtpSender(smtpClient);
 

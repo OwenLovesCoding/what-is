@@ -1,6 +1,5 @@
 ﻿using FluentEmail.Core;
 using Microsoft.AspNetCore.Mvc;
-using System.Runtime.InteropServices;
 using System.Text.Json;
 
 namespace what_is.Controllers
@@ -8,10 +7,11 @@ namespace what_is.Controllers
 
     [ApiController]
     [Route("[controller]")]
-    public class What_Is(IConfiguration configuration)
+    public class What_Is(IConfiguration configuration, IFluentEmail email)
     {
 
-        private readonly IFluentEmail _email;
+        private readonly IFluentEmail _email = email;
+
 
         [HttpPost("/get-c")]
         public async Task<object> FindMeaning([FromBody] Words seachBody)
@@ -36,7 +36,7 @@ namespace what_is.Controllers
 
                 var data = await response.Content.ReadAsStringAsync();
 
-                Console.WriteLine("loaded the documents from send docu function");
+                //Console.WriteLine("loaded the documents from send docu function");
 
                 //parse the document
                 var parseRes = JsonDocument.Parse(data);
@@ -46,12 +46,20 @@ namespace what_is.Controllers
 
                 //Console.WriteLine(await response.Content.ReadAsStringAsync());
                 var items = root.GetProperty("message").GetProperty("items").EnumerateArray();
+                string html = string.Empty;
 
-                //foreach (var item in items.EnumerateArray()) { }
+                foreach (var item in items)
+                {
+                    var doi = item.GetProperty("DOI").GetString();
+                    var prefix = item.GetProperty("prefix").GetString();
+                    var title = item.GetProperty("title")[0].GetString();
+                    var urls = item.GetProperty("URL").GetString();
+
+                    html += $"<div><p>{doi}</p><p>DOI: {doi}</p><p>Prefix: {prefix}</p><p>Title: {title}</p><p>Link: {urls}</p></div>\n";
+                }
 
 
-
-                return await HandleEmailSending(seachBody.Email, seachBody.Word, ["home home home"]);
+                return await HandleEmailSending(seachBody.Email, seachBody.Word, html);
 
             }
             catch (Exception ex)
@@ -59,36 +67,26 @@ namespace what_is.Controllers
                 return ex.Message;
             }
         }
+
+
         public async Task<string> HandleEmailSending(
             string to,
             string subject,
-             string[] items,
-            [Optional] IConfiguration configuration
+             string items
         )
         {
             try
             {
                 Console.WriteLine("Touched the sending email func");
 
-                //return $"This is the recipient - {to} and this is the items - {items[0]}";
-                string req = items[0];
-
-                if (_email != null)
-                {
-
-                    var responses = await _email
-                   .To(to)
-                   .Subject(subject)
-                   .Body(req)
-                   .SendAsync();
-                }
-                else
-                {
-                    return "email is invalid";
-                }
-
+                var responses = await _email
+               .To(to.Trim())
+               .Subject(subject)
+               .Body(items)
+               .SendAsync();
 
                 return "Message sent";
+
             }
             catch (Exception ex)
             {
