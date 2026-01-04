@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using FluentEmail.Core;
+using Microsoft.AspNetCore.Mvc;
 using System.Runtime.InteropServices;
-using System.Text.Json;
 
 namespace what_is.Controllers
 {
@@ -10,7 +10,7 @@ namespace what_is.Controllers
     public class What_Is(IConfiguration configuration)
     {
 
-
+        private readonly IFluentEmail? email;
 
         [HttpGet("/get-c")]
         public async Task<string> FindMeaning([FromBody] Words seachBody)
@@ -35,7 +35,7 @@ namespace what_is.Controllers
 
                 //var data = await response.Content.ReadFromJsonAsync();
 
-                return await HandleEmailSending(seachBody.Email, seachBody.Word);
+                return await HandleEmailSending(seachBody.Email, seachBody.Word, []);
 
             }
             catch (Exception ex)
@@ -47,7 +47,6 @@ namespace what_is.Controllers
             string to,
             string subject,
             string[] items,
-            string response,
             [Optional] IConfiguration configuration
         )
         {
@@ -56,25 +55,20 @@ namespace what_is.Controllers
                 to = to,
                 subject = subject,
                 items = items,
-                response = response
             };
 
-            var json = JsonSerializer.Serialize(body);
 
-            string apiKey = configuration["Brevo:BrevoApiKey"]!;
-
-            return apiKey;
 
             try
             {
-                var request = new HttpRequestMessage(
-                 HttpMethod.Post,
-                 "https://api.brevo.com/v3/smtp/email"
-             );
+                var responses = await email!
+               .To(to)
+               .Subject(subject)
+               .Body(items[0])
+               .SendAsync();
 
-                //request.Headers.Add("api-key", );
-                request.Headers.Add("accept", "application/json");
 
+                return "Message sent";
             }
             catch (Exception ex)
             {
